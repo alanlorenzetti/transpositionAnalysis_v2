@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# alorenzetti 201810
+# alorenzetti 20181106
 
 # require emboss
 # require bedtools

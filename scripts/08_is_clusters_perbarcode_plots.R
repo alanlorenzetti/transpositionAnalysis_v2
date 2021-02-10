@@ -1,5 +1,7 @@
 #!/usr/bin/R
 
+# alorenzetti 20190826
+
 # set up
 library(ggplot2)
 library(gtools)
