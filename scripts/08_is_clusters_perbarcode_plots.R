@@ -1,6 +1,7 @@
 #!/usr/bin/R
 
 # alorenzetti 20190826
+# requires samtools installed
 
 # set up
 library(ggplot2)
@@ -8,6 +9,8 @@ library(gtools)
 library(tidyverse)
 library(scales)
 library(viridis)
+library(ggtext)
+library(Rmisc)
 theme_set(theme_bw())
 
 # defining color palette
@@ -99,12 +102,12 @@ for(i in unique(dfdel$strain)){
 # two options of names 1 and 2
 i=2
 
-dfins$strain[dfins$strain == "barcode01"] = c("NRC1_0p", "Δura3 A")[i]
-dfins$strain[dfins$strain == "barcode02"] = c("Mutant1_0p", "Δura3 B")[i]
-dfins$strain[dfins$strain == "barcode03"] = c("Mutant2_0p", "Δura3 C")[i]
-dfins$strain[dfins$strain == "barcode04"] = c("Mutant3_0p", "Δura3Δlsm A")[i]
-dfins$strain[dfins$strain == "barcode05"] = c("Mutant1_20p", "Δura3Δlsm B")[i]
-dfins$strain[dfins$strain == "barcode06"] = c("Mutant2_20p", "Δura3Δlsm C")[i]
+dfins$strain[dfins$strain == "barcode01"] = c("NRC1_0p", "&Delta;*ura3* A")[i]
+dfins$strain[dfins$strain == "barcode02"] = c("Mutant1_0p", "&Delta;*ura3* B")[i]
+dfins$strain[dfins$strain == "barcode03"] = c("Mutant2_0p", "&Delta;*ura3* C")[i]
+dfins$strain[dfins$strain == "barcode04"] = c("Mutant3_0p", "&Delta;*ura3* &Delta;*smap1* A")[i]
+dfins$strain[dfins$strain == "barcode05"] = c("Mutant1_20p", "&Delta;*ura3* &Delta;*smap1* B")[i]
+dfins$strain[dfins$strain == "barcode06"] = c("Mutant2_20p", "&Delta;*ura3* &Delta;*smap1* C")[i]
 lvs = levels(as.factor(dfins$strain))
 if(i==1){
   lvs = lvs[c(6,1,3,5,2,4)]
@@ -113,12 +116,12 @@ if(i==1){
 }
 dfins$strain = factor(dfins$strain, levels=lvs)
 
-dfdel$strain[dfdel$strain == "barcode01"] = c("NRC1_0p", "Δura3 A")[i]
-dfdel$strain[dfdel$strain == "barcode02"] = c("Mutant1_0p", "Δura3 B")[i]
-dfdel$strain[dfdel$strain == "barcode03"] = c("Mutant2_0p", "Δura3 C")[i]
-dfdel$strain[dfdel$strain == "barcode04"] = c("Mutant3_0p", "Δura3Δlsm A")[i]
-dfdel$strain[dfdel$strain == "barcode05"] = c("Mutant1_20p", "Δura3Δlsm B")[i]
-dfdel$strain[dfdel$strain == "barcode06"] = c("Mutant2_20p", "Δura3Δlsm C")[i]
+dfdel$strain[dfdel$strain == "barcode01"] = c("NRC1_0p", "&Delta;*ura3* A")[i]
+dfdel$strain[dfdel$strain == "barcode02"] = c("Mutant1_0p", "&Delta;*ura3* B")[i]
+dfdel$strain[dfdel$strain == "barcode03"] = c("Mutant2_0p", "&Delta;*ura3* C")[i]
+dfdel$strain[dfdel$strain == "barcode04"] = c("Mutant3_0p", "&Delta;*ura3* &Delta;*smap1* A")[i]
+dfdel$strain[dfdel$strain == "barcode05"] = c("Mutant1_20p", "&Delta;*ura3* &Delta;*smap1* B")[i]
+dfdel$strain[dfdel$strain == "barcode06"] = c("Mutant2_20p", "&Delta;*ura3* &Delta;*smap1* C")[i]
 lvs = levels(as.factor(dfdel$strain))
 if(i==1){
   lvs = lvs[c(6,1,3,5,2,4)]
@@ -128,21 +131,29 @@ if(i==1){
 dfdel$strain = factor(dfdel$strain, levels=lvs)
 
 # adjusting isfamily names
+dfins$ISFamily = str_replace(dfins$ISFamily, "IS(.*)$", "IS*\\1*")
+
 dfins$ISFamily = sub("_ssgr.*", "", dfins$ISFamily)
-dfins[dfins$ISFamily != "ISH3" & dfins$ISFamily != "IS4","ISFamily"] = "Outras famílias"
+dfins[dfins$ISFamily != "IS*H3*" & dfins$ISFamily != "IS*4*","ISFamily"] = "Outras famílias"
 lvs = levels(as.factor(dfins$ISFamily))
 lvs = lvs[c(1,2,3)]
 dfins$ISFamily = factor(dfins$ISFamily, levels=lvs)
 
+dfdel$ISFamily = str_replace(dfdel$ISFamily, "IS(.*)$", "IS*\\1*")
+
 dfdel$ISFamily = sub("_ssgr.*", "", dfdel$ISFamily)
-dfdel[dfdel$ISFamily != "ISH3" & dfdel$ISFamily != "IS4","ISFamily"] = "Outras famílias"
+dfdel[dfdel$ISFamily != "IS*H3*" & dfdel$ISFamily != "IS*4*","ISFamily"] = "Outras famílias"
 lvs = levels(as.factor(dfdel$ISFamily))
 lvs = lvs[c(1,2,3)]
 dfdel$ISFamily = factor(dfdel$ISFamily, levels=lvs)
 
-# adjusting levels of factor ISname
+# adjusting ISnames and their levels levels of factor ISname
+dfins$ISName = str_replace(dfins$ISName, "IS(.*)$", "IS*\\1*")
+
 lvs = mixedsort(levels(as.factor(dfins$ISName)))
 dfins$ISName = factor(dfins$ISName, levels=rev(lvs))
+
+dfdel$ISName = str_replace(dfdel$ISName, "IS(.*)$", "IS*\\1*")
 
 lvs = mixedsort(levels(as.factor(dfdel$ISName)))
 dfdel$ISName = factor(dfdel$ISName, levels=rev(lvs))
@@ -156,7 +167,8 @@ write.table(file = "../dfins.txt", x = dfins, sep="\t", quote = F, row.names = F
 write.table(file = "../dfdel.txt", x = dfdel, sep="\t", quote = F, row.names = F, col.names = T)
 
 # how many IS
-ggplot(dfins, (aes(ISName, fill = ISFamily))) +
+# insertions
+isCountPerLib = ggplot(dfins, (aes(ISName, fill = ISFamily))) +
   geom_bar() +
   ylim(c(0, 30)) +
   facet_wrap(strain ~ .) +
@@ -165,8 +177,19 @@ ggplot(dfins, (aes(ISName, fill = ISFamily))) +
   xlab(label = "") +
   scale_fill_viridis(discrete = T,
                      name = "Família:") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        strip.text = element_markdown(),
+        axis.text.y = element_markdown(),
+        legend.text = element_markdown())
 
+# saving
+ggsave(filename = "plots/isCountPerLib.png",
+       plot = isCountPerLib,
+       dpi = 300,
+       width = 7,
+       height = 5)
+
+# deletions
 ggplot(dfdel, (aes(ISName, fill = ISFamily))) +
   geom_bar() +
   ylim(c(0, 30)) +
@@ -213,10 +236,6 @@ dfins$svType = "insertion"
 dfdel$svType = "excision"
 df = rbind.data.frame(dfins, dfdel)
 
-lvs = mixedsort(levels(as.factor(df$ISName)), decreasing = T)
-df$ISName = factor(df$ISName, levels=lvs)
-df$status = factor(df$status, levels=c("predominant", "common", "rare"))
-df$svType = factor(df$svType, levels=c("insertion", "excision"))
 
 df = df %>%
   mutate(status = case_when(status == "predominant" ~ "Predominante",
@@ -227,7 +246,12 @@ df = df %>%
                             svType == "excision" ~ "Excisão",
                             TRUE ~ as.character(status)))
 
-ggplot(df, (aes(ISName, fill=ISFamily))) +
+lvs = mixedsort(levels(as.factor(df$ISName)), decreasing = T)
+df$ISName = factor(df$ISName, levels=lvs)
+df$status = factor(df$status, levels=c("Predominante", "Comum", "Raro"))
+df$svType = factor(df$svType, levels=c("Inserção", "Excisão"))
+
+isCountPerStatus = ggplot(df, (aes(ISName, fill=ISFamily))) +
   geom_bar() +
   facet_grid(status ~ svType, scales = "free_x") +
   ylab("Número de observações") +
@@ -235,7 +259,17 @@ ggplot(df, (aes(ISName, fill=ISFamily))) +
   xlab(label="") +
   scale_fill_viridis(discrete=T,
                      name = "Família: ") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        strip.text = element_markdown(),
+        axis.text.y = element_markdown(),
+        legend.text = element_markdown())
+
+# saving
+ggsave(filename = "plots/isCountPerStatus.png",
+       plot = isCountPerStatus,
+       dpi = 300,
+       width = 7,
+       height = 8)
 
 # hotspots
 ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
@@ -246,3 +280,61 @@ ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
   geom_point(alpha=0.6) + facet_grid(. ~ replicon, scales = "free_x") +
   xlab(label="") + scale_color_viridis(discrete=T)
 
+# counting clusters and comparing strains
+# creating function to parse BAMs
+# counting only aligned and
+# non supplementary reads
+countBamReads = function(x){
+  out = system2(command = "samtools",
+                args = paste("view -F 0x4 -F 0x800", x, "| wc -l"),
+                stdout = T) %>% 
+    as.numeric()
+  
+  return(out)
+}
+
+# creating tibble to store results
+# and performing counting
+bamFiles = paste0("../20190826_sniffles_ref/bam/",
+                  paste0("barcode0", c(4:6,1:3)),
+                  ".bam")
+resCounts = tibble()
+for(i in bamFiles){
+  resCounts = bind_rows(resCounts,
+                        tibble(lib = i,
+                               counts = countBamReads(i)))
+}
+
+# creating a tibble containing the sum of insertions and deletions
+# and normalizing it by read depth
+insDelCounts = df %>%
+  dplyr::group_by(strain) %>%
+  dplyr::summarise(count = n()) %>% 
+  dplyr::mutate(readCount = resCounts$counts) %>% 
+  dplyr::mutate(norm = (max(readCount)/readCount)*count) %>% 
+  dplyr::mutate(strain = str_replace(strain, " .$", "")) %>% 
+  dplyr::group_by(strain) %>% 
+  dplyr::summarise(mean = mean(norm),
+                   sd = sd(norm),
+                   n = n())
+
+insDelCounts$margin = 1.96*(insDelCounts$sd/sqrt(insDelCounts$n))
+insDelCounts$lower95ci = insDelCounts$mean - insDelCounts$margin
+insDelCounts$upper95ci = insDelCounts$mean + insDelCounts$margin
+
+# plotting and saving
+comparisonPlot = insDelCounts %>% 
+  ggplot(aes(x = strain, y = mean)) +
+  geom_point() +
+  geom_pointrange(aes(ymin = lower95ci,
+                      ymax = upper95ci)) +
+  coord_flip() +
+  xlab("Linhagem") +
+  ylab("Média de mobilizações") +
+  theme(axis.text.y = element_markdown())
+
+ggsave(filename = "plots/mobilizationComparison.png",
+       plot = comparisonPlot,
+       dpi = 300,
+       width = 7,
+       height = 2)
