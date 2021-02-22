@@ -3,7 +3,7 @@
 # alorenzetti 20190826
 # requires samtools installed
 
-# set up
+# set up ####
 library(ggplot2)
 library(gtools)
 library(tidyverse)
@@ -11,6 +11,7 @@ library(scales)
 library(viridis)
 library(ggtext)
 library(Rmisc)
+library(ggpubr)
 theme_set(theme_bw())
 
 # defining color palette
@@ -27,7 +28,7 @@ mid=0.5
 #snifflesdir="../20190826_sniffles_ref"
 snifflesdir="20190826_sniffles_ref"
 
-# loading files
+# loading files ####
 dfins = read.delim(
   paste0(snifflesdir, "/insertionAnnot/insertion_clusters.txt"),
   header = F,
@@ -56,7 +57,7 @@ cols = c(
 colnames(dfins) = cols
 colnames(dfdel) = cols
 
-# classifying insertion cluster status according to coverage
+# classifying insertion cluster status according to coverage ####
 for(i in unique(dfins$strain)){
   df = read.table(paste0(snifflesdir, "/bam/", i, ".txt"), header=F)
   colnames(df) = c("replicon","position","value")
@@ -77,7 +78,7 @@ for(i in unique(dfins$strain)){
   }
 }
 
-# classifying deletion cluster status according to coverage
+# classifying deletion cluster status according to coverage ####
 for(i in unique(dfdel$strain)){
   df = read.table(paste0(snifflesdir, "/bam/", i, ".txt"), header=F)
   colnames(df) = c("replicon","position","value")
@@ -98,7 +99,7 @@ for(i in unique(dfdel$strain)){
   }
 }
 
-# setting strain names
+# setting strain names ####
 # two options of names 1 and 2
 i=2
 
@@ -130,18 +131,18 @@ if(i==1){
 }
 dfdel$strain = factor(dfdel$strain, levels=lvs)
 
-# adjusting isfamily names
+# adjusting isfamily names ####
+dfins$ISFamily = sub("_ssgr.*", "", dfins$ISFamily)
 dfins$ISFamily = str_replace(dfins$ISFamily, "IS(.*)$", "IS*\\1*")
 
-dfins$ISFamily = sub("_ssgr.*", "", dfins$ISFamily)
 dfins[dfins$ISFamily != "IS*H3*" & dfins$ISFamily != "IS*4*","ISFamily"] = "Outras famílias"
 lvs = levels(as.factor(dfins$ISFamily))
 lvs = lvs[c(1,2,3)]
 dfins$ISFamily = factor(dfins$ISFamily, levels=lvs)
 
+dfdel$ISFamily = sub("_ssgr.*", "", dfdel$ISFamily)
 dfdel$ISFamily = str_replace(dfdel$ISFamily, "IS(.*)$", "IS*\\1*")
 
-dfdel$ISFamily = sub("_ssgr.*", "", dfdel$ISFamily)
 dfdel[dfdel$ISFamily != "IS*H3*" & dfdel$ISFamily != "IS*4*","ISFamily"] = "Outras famílias"
 lvs = levels(as.factor(dfdel$ISFamily))
 lvs = lvs[c(1,2,3)]
@@ -162,11 +163,12 @@ dfdel$ISName = factor(dfdel$ISName, levels=rev(lvs))
 lvs=c("NC_002607.1", "NC_001869.1", "NC_002608.1")
 dfins$replicon = factor(dfins$replicon, levels=lvs)
 
-# writing dfins and dfdels to file
+# writing dfins and dfdels to file ####
 write.table(file = "../dfins.txt", x = dfins, sep="\t", quote = F, row.names = F, col.names = T)
 write.table(file = "../dfdel.txt", x = dfdel, sep="\t", quote = F, row.names = F, col.names = T)
 
-# how many IS
+# plots ####
+# how many IS per barcode ####
 # insertions
 isCountPerLib = ggplot(dfins, (aes(ISName, fill = ISFamily))) +
   geom_bar() +
@@ -201,17 +203,17 @@ ggplot(dfdel, (aes(ISName, fill = ISFamily))) +
                      name = "Família:") +
   theme(legend.position = "bottom")
 
-# size of insertions observed more than 10 times
+# size of insertions observed more than 10 times ####
 # considering only mean of size of clusters
-df = dfins %>% group_by(ISName) %>% summarise(length(ISName))
-filter = as.character(df[df$`length(ISName)` >= 10, ]$ISName)
-ggplot(filter(dfins, ISName %in% filter), (aes(x=ISName,y=meanLength,fill=ISFamily))) + 
-  geom_violin() +
-  coord_flip() + 
-  xlab(label="") + 
-  scale_fill_viridis(discrete=T)
+# df = dfins %>% group_by(ISName) %>% summarise(length(ISName))
+# filter = as.character(df[df$`length(ISName)` >= 10, ]$ISName)
+# ggplot(filter(dfins, ISName %in% filter), (aes(x=ISName,y=meanLength,fill=ISFamily))) + 
+#   geom_violin() +
+#   coord_flip() + 
+#   xlab(label="") + 
+#   scale_fill_viridis(discrete=T)
 
-# classifying IS clusters according to frequency of observations
+# classifying IS clusters according to frequency of observations ####
 lvs = unique(as.character(dfins$status))
 lvs = lvs[c(2,1,3)]
 dfins$status = factor(dfins$status, levels=lvs)
@@ -235,7 +237,6 @@ ggplot(dfdel, (aes(ISName, fill=ISFamily))) +
 dfins$svType = "insertion"
 dfdel$svType = "excision"
 df = rbind.data.frame(dfins, dfdel)
-
 
 df = df %>%
   mutate(status = case_when(status == "predominant" ~ "Predominante",
@@ -271,16 +272,16 @@ ggsave(filename = "plots/isCountPerStatus.png",
        width = 7,
        height = 8)
 
-# hotspots
-ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
-  geom_point(alpha=0.6) + facet_grid(ISFamily ~ replicon, scales = "free_x") +
-  xlab(label="") + scale_color_viridis(discrete=T)
+# hotspots of insertion ####
+# ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
+#   geom_point(alpha=0.6) + facet_grid(ISFamily ~ replicon, scales = "free_x") +
+#   xlab(label="") + scale_color_viridis(discrete=T)
+# 
+# ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
+#   geom_point(alpha=0.6) + facet_grid(. ~ replicon, scales = "free_x") +
+#   xlab(label="") + scale_color_viridis(discrete=T)
 
-ggplot(dfins, (aes(x=meanStart, y=meanLength, shape=status, col=ISName))) +
-  geom_point(alpha=0.6) + facet_grid(. ~ replicon, scales = "free_x") +
-  xlab(label="") + scale_color_viridis(discrete=T)
-
-# counting clusters and comparing strains
+# counting clusters and comparing strains ####
 # creating function to parse BAMs
 # counting only aligned and
 # non supplementary reads
@@ -307,6 +308,7 @@ for(i in bamFiles){
 
 # creating a tibble containing the sum of insertions and deletions
 # and normalizing it by read depth
+# all cases
 insDelCounts = df %>%
   dplyr::group_by(strain) %>%
   dplyr::summarise(count = n()) %>% 
@@ -331,10 +333,53 @@ comparisonPlot = insDelCounts %>%
   coord_flip() +
   xlab("Linhagem") +
   ylab("Média de mobilizações") +
+  ggtitle("Total") +
   theme(axis.text.y = element_markdown())
 
-ggsave(filename = "plots/mobilizationComparison.png",
-       plot = comparisonPlot,
+# separated by family ####
+fams = df$ISFamily %>% 
+  unique() %>% 
+  as.character() 
+  
+isfamdf = list()
+isfamplot = list()
+isfamplot[["Todas"]] = comparisonPlot
+for(i in fams){
+  isfamdf[[i]] = df %>%
+    dplyr::filter(ISFamily == i) %>% 
+    dplyr::group_by(strain) %>%
+    dplyr::summarise(count = n()) %>% 
+    dplyr::mutate(readCount = resCounts$counts) %>% 
+    dplyr::mutate(norm = (max(readCount)/readCount)*count) %>% 
+    dplyr::mutate(strain = str_replace(strain, " .$", "")) %>% 
+    dplyr::group_by(strain) %>% 
+    dplyr::summarise(mean = mean(norm),
+                     sd = sd(norm),
+                     n = n())
+  
+  isfamdf[[i]]$margin = 1.96*(isfamdf[[i]]$sd/sqrt(isfamdf[[i]]$n))
+  isfamdf[[i]]$lower95ci = isfamdf[[i]]$mean - isfamdf[[i]]$margin
+  isfamdf[[i]]$upper95ci = isfamdf[[i]]$mean + isfamdf[[i]]$margin
+  
+  isfamplot[[i]] = isfamdf[[i]] %>% 
+    ggplot(aes(x = strain, y = mean)) +
+    geom_point() +
+    geom_pointrange(aes(ymin = lower95ci,
+                        ymax = upper95ci)) +
+    coord_flip() +
+    xlab("Linhagem") +
+    ylab("Média de mobilizações") +
+    ggtitle(i) +
+    theme(axis.text.y = element_markdown(),
+          plot.title = element_markdown())
+}
+
+ggsave(filename = "plots/mobilizationComparisonPerFamily.png",
+       plot = ggarrange(plotlist = isfamplot,
+                        nrow = isfamplot %>% length(),
+                        ncol = 1,
+                        labels = "AUTO"),
        dpi = 300,
        width = 7,
-       height = 2)
+       height = 8)
+

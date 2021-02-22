@@ -7,9 +7,10 @@ library(rtracklayer)
 library(scales)
 library(viridis)
 library(ggthemes)
+library(tidyverse)
 
-# save svg?
-save="n"
+# save png?
+save="y"
 ht=10
 wh=10
 
@@ -45,7 +46,7 @@ df=data.frame(acc=c(chr,pnrc100,pnrc200),
                stringsAsFactors = F)
 
 # saving
-if(save=="y"){svg("plasmids.svg", height = ht, width = wh)}
+if(save=="y"){png("plots/plasmids.png", height = ht, width = wh, units = "in", res = 300)}
 par(cex=1.5)
 
 ####init plot with the genome layout for the PLASMIDS####
@@ -92,10 +93,13 @@ col=adjustcolor(discretePal[1],alpha.f = 0.5)
 circos.genomicLink(bed1, bed2, col = col)
 
 ####regions IS plasmids#####
-is = as.data.frame(rtracklayer::import("~/gdrive/is-derived-RNAs/Hsalinarum/misc/Hsalinarum-ISSaga-checked.gff3"))
+is = as.data.frame(rtracklayer::import("/Users/alorenzetti/gdrive/is-derived-RNAs/Hsalinarum/misc/is-annotation-update-pfeiffer2019/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3"))
 is$rpt_family = as.character(sub("\\+.*$", "", is$rpt_family))
-is[is$rpt_family != "IS4" & is$rpt_family != "ISH3","rpt_family"] = "Other_Families"
-isfamilies=c("IS4", "ISH3", "Other_Families")
+is$rpt_family = str_replace(is$rpt_family, "/", "*/")
+is$rpt_family = str_replace_all(is$rpt_family, "IS", "IS*")
+is$rpt_family = str_replace_all(is$rpt_family, "$", "*")
+is[is$rpt_family != "IS*4*" & is$rpt_family != "IS*H3*","rpt_family"] = "Outras Famílias"
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list = vector("list", length = length(isfamilies))
 n=1
 for(i in isfamilies){
@@ -139,7 +143,7 @@ if(genomewidegc == "y"){
   maxgc=max(gc[gc$V1 == pnrc100 | gc$V1 == pnrc200,4])
   meangc=mean(gc[gc$V1 == pnrc100 | gc$V1 == pnrc200,4])
 }
-col=colorRamp2(c(mingc,meangc,maxgc), c(strainPal[6], "black", strainPal[1]))
+col=colorRamp2(c(mingc,meangc,maxgc), c(strainPal[4], "white", strainPal[1]))
 circos.genomicHeatmap(gc, col = col, numeric.column = 4, connection_height = 0.0001, heatmap_height = 0.075)
 
 #####coverage plasmids#####
@@ -171,9 +175,9 @@ circos.yaxis(side = "left", sector.index = pnrc100, track.index = CELL_META$trac
 dfins=read.delim("../dfins.txt", header=T)
 
 # unifying IS1595 IS5 and ISH6 in a single family
-filter = as.character(dfins$ISFamily) != "IS4" & as.character(dfins$ISFamily) != "ISH3"
+filter = as.character(dfins$ISFamily) != "IS*4*" & as.character(dfins$ISFamily) != "IS*H3*"
 dfins[,"ISFamily"] = as.character(dfins[,"ISFamily"])
-dfins[filter,"ISFamily"] = "Other_Families"
+dfins[filter,"ISFamily"] = "Outras Famílias"
 dfins[,"ISFamily"] = as.factor(dfins[,"ISFamily"])
 
 # adjusting coordinates of pnrc200
@@ -182,7 +186,7 @@ dfins[dfins$replicon == pnrc200,"meanStart"] = dfins[dfins$replicon == pnrc200,"
 # adjusting meanLength to numeric
 dfins[,"meanLength"] = as.numeric(dfins[,"meanLength"])
 # creating a list of dataframes. each data frame an IS family
-isfamilies=c("IS4", "ISH3", "Other_Families")
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list=vector("list", length(isfamilies))
 n=1
 for(i in isfamilies){
@@ -203,12 +207,12 @@ circos.yaxis(side = "left", sector.index = pnrc100, track.index = CELL_META$trac
 
 #####excisions plasmids#####
 # reading dfdel containing information about new insertions
-dfdel=read.delim("dfdel.txt", header=T)
+dfdel=read.delim("../dfdel.txt", header=T)
 
 # unifying IS1595 IS5 and IS66 in a single family
-filter = as.character(dfdel$ISFamily) != "IS4" & as.character(dfdel$ISFamily) != "ISH3"
+filter = as.character(dfdel$ISFamily) != "IS*4*" & as.character(dfdel$ISFamily) != "IS*H3*"
 dfdel[,"ISFamily"] = as.character(dfdel[,"ISFamily"])
-dfdel[filter,"ISFamily"] = "Other_Families"
+dfdel[filter,"ISFamily"] = "Outras Famílias"
 dfdel[,"ISFamily"] = as.factor(dfdel[,"ISFamily"])
 
 # adjusting coordinates of pnrc200
@@ -217,7 +221,7 @@ dfdel[dfdel$replicon == pnrc200,"meanStart"] = dfdel[dfdel$replicon == pnrc200,"
 # adjusting meanLength to numeric
 dfdel[,"meanLength"] = as.numeric(dfdel[,"meanLength"])
 # creating a list of dataframes. each data frame an IS family
-isfamilies=c("IS4", "ISH3", "Other_Families")
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list=vector("list", length(isfamilies))
 n=1
 for(i in isfamilies){
@@ -247,7 +251,7 @@ circos.par("start.degree" = 90,
 par(cex=1.25)
 
 # saving
-if(save=="y"){svg("chr.svg", width = wh, height = ht)}
+if(save=="y"){png("plots/chr.png", width = wh, height = ht, units = "in", res = 300)}
 par(cex=1.5)
 
 circos.initializeWithIdeogram(df, plotType = c("labels","axis")[2], chromosome.index = c(chr, pnrc100, pnrc200)[1])
@@ -275,8 +279,8 @@ circos.rect(xleft = 1798148, xright = 1801564, ybottom = 0, ytop = 1, sector.ind
 ####regions IS chromosome#####
 is = as.data.frame(rtracklayer::import("~/gdrive/is-derived-RNAs/Hsalinarum/misc/Hsalinarum-ISSaga-checked.gff3"))
 is$rpt_family = as.character(sub("\\+.*$", "", is$rpt_family))
-is[is$rpt_family != "IS4" & is$rpt_family != "ISH3","rpt_family"] = "Other_Families"
-isfamilies=c("IS4", "ISH3", "Other_Families")
+is[is$rpt_family != "IS*4*" & is$rpt_family != "IS*H3*","rpt_family"] = "Outras Famílias"
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list = vector("list", length = length(isfamilies))
 n=1
 for(i in isfamilies){
@@ -303,7 +307,7 @@ if(genomewidegc == "y"){
   maxgc=max(gc[gc$V1 == chr,4])
   meangc=mean(gc[gc$V1 == chr,4])
 }
-col=colorRamp2(c(mingc,meangc,maxgc), c(strainPal[6], "black", strainPal[1]))
+col=colorRamp2(c(mingc,meangc,maxgc), c(strainPal[4], "white", strainPal[1]))
 circos.genomicHeatmap(gc, col = col, numeric.column = 4, connection_height = 0.0001, heatmap_height = 0.075)
 
 ####coverage chromosome####
@@ -334,9 +338,9 @@ circos.yaxis(side = "left", sector.index = chr, track.index = CELL_META$track.in
 dfins=read.delim("../dfins.txt", header=T)
 
 # unifying IS1595 IS5 and ISH6 in a single family
-filter = as.character(dfins$ISFamily) != "IS4" & as.character(dfins$ISFamily) != "ISH3"
+filter = as.character(dfins$ISFamily) != "IS*4*" & as.character(dfins$ISFamily) != "IS*H3*"
 dfins[,"ISFamily"] = as.character(dfins[,"ISFamily"])
-dfins[filter,"ISFamily"] = "Other_Families"
+dfins[filter,"ISFamily"] = "Outras Famílias"
 dfins[,"ISFamily"] = as.factor(dfins[,"ISFamily"])
 
 # adjusting coordinates of pnrc200
@@ -345,7 +349,7 @@ dfins[dfins$replicon == pnrc200,"meanStart"] = dfins[dfins$replicon == pnrc200,"
 # adjusting meanLength to numeric
 dfins[,"meanLength"] = as.numeric(dfins[,"meanLength"])
 # creating a list of dataframes. each data frame an IS family
-isfamilies=c("IS4", "ISH3", "Other_Families")
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list=vector("list", length(isfamilies))
 n=1
 for(i in isfamilies){
@@ -369,9 +373,9 @@ circos.yaxis(side = "left", sector.index = chr, track.index = CELL_META$track.in
 dfdel=read.delim("../dfdel.txt", header=T)
 
 # unifying IS1595 IS5 and IS66 in a single family
-filter = as.character(dfdel$ISFamily) != "IS4" & as.character(dfdel$ISFamily) != "ISH3"
+filter = as.character(dfdel$ISFamily) != "IS*4*" & as.character(dfdel$ISFamily) != "IS*H3*"
 dfdel[,"ISFamily"] = as.character(dfdel[,"ISFamily"])
-dfdel[filter,"ISFamily"] = "Other_Families"
+dfdel[filter,"ISFamily"] = "Outras Famílias"
 dfdel[,"ISFamily"] = as.factor(dfdel[,"ISFamily"])
 
 # adjusting coordinates of pnrc200
@@ -380,7 +384,7 @@ dfdel[dfdel$replicon == pnrc200,"meanStart"] = dfdel[dfdel$replicon == pnrc200,"
 # adjusting meanLength to numeric
 dfdel[,"meanLength"] = as.numeric(dfdel[,"meanLength"])
 # creating a list of dataframes. each data frame an IS family
-isfamilies=c("IS4", "ISH3", "Other_Families")
+isfamilies=c("IS*4*", "IS*H3*", "Outras Famílias")
 bed_list=vector("list", length(isfamilies))
 n=1
 for(i in isfamilies){
