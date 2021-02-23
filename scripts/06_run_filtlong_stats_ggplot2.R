@@ -40,6 +40,19 @@ dfsum$barcode = factor(dfsum$barcode,
                                       "&Delta;*ura3* &Delta;*smap1* A", "&Delta;*ura3* &Delta;*smap1* B", "&Delta;*ura3* &Delta;*smap1* C",
                                       "Não classificado")))
 
+# computing Read N50 for this run
+lenvec = df %>%
+  dplyr::arrange(dplyr::desc(length)) %>% 
+  dplyr::select(length) %>% 
+  unlist(use.names = F)
+lensum = lenvec %>% sum()
+
+vecsum = 0
+for(i in 1:length(lenvec)){
+  vecsum = vecsum + lenvec[i]
+  if(vecsum > (lensum / 2)){rn50 = lenvec[i]; break()}
+}
+
 p1 = ggplot(df,aes(x=as.factor(barcode), fill=barcode)) +
   geom_bar(color="black") + ylim(c(0,25000)) +
   ylab("Número de reads") +
