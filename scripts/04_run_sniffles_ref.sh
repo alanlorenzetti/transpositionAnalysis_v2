@@ -72,7 +72,10 @@ if [[ ! -f $miscdir/$spp.fa ]] ; then
                                    -outfmt %f >> $miscdir/${spp}_mod.fa
                 done
         fi
-# downloading NCBI RefSeq annotation (though not sure why)
+# downloading NCBI RefSeq annotation
+# and modifying it to be compatible
+# with the modified version of genome
+# helpful for data vis
         curl -u anonymous: ${url/.fna.gz/.gff.gz} 2> /dev/null | zcat > $miscdir/$spp".gff"
         awk -v OFS="\t" -v FS="\t" '{if($1 ~ /^#/){print}else if($3 != "region"){if($1 == "NC_002607.1"){print}else if($1 == "NC_001869.1" && $4 <= 150252 && $5 <= 150252){print}else if($1 == "NC_002608.1" && $4 >= 112796 && $5 <= 332792){$4=$4-112796+1;$5=$5-112796; print}}}' $miscdir/$spp".gff" > $miscdir/$spp"_mod.gff"
 
