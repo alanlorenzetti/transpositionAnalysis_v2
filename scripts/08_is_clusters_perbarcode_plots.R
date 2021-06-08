@@ -4,14 +4,21 @@
 # requires samtools installed
 
 # set up ####
-library(ggplot2)
-library(gtools)
-library(tidyverse)
-library(scales)
-library(viridis)
-library(ggtext)
-library(Rmisc)
-library(ggpubr)
+library(pacman)
+
+packs = c(
+  "ggplot2",
+  "gtools",
+  "tidyverse",
+  "scales",
+  "viridis",
+  "ggtext",
+  "Rmisc",
+  "ggpubr")
+
+# loading packages
+p_load(char = packs)
+
 theme_set(theme_bw())
 
 # defining color palette
@@ -25,8 +32,8 @@ low=0.1
 mid=0.5
 
 # setting sniffles dir
-#snifflesdir="../20190826_sniffles_ref"
-snifflesdir="20190826_sniffles_ref"
+snifflesdir="../20190826_sniffles_ref"
+#snifflesdir="20190826_sniffles_ref"
 
 # loading files ####
 dfins = read.delim(
@@ -383,3 +390,64 @@ ggsave(filename = "plots/mobilizationComparisonPerFamily.png",
        width = 7,
        height = 8)
 
+# english version of the aforementioned plot
+# plotting general
+comparisonPlot = insDelCounts %>% 
+  ggplot(aes(x = strain, y = mean)) +
+  geom_point() +
+  geom_pointrange(aes(ymin = lower95ci,
+                      ymax = upper95ci)) +
+  coord_flip() +
+  xlab("Strain") +
+  ylab("Average number of observed mobilizations") +
+  ggtitle("Total") +
+  theme(axis.text.y = element_markdown())
+
+# separated by family ####
+fams = df$ISFamily %>% 
+  unique() %>% 
+  as.character() 
+
+isfamdf = list()
+isfamplot = list()
+isfamplot[["Todas"]] = comparisonPlot
+for(i in fams){
+  if(i != "Outras famílias"){plottitle = i}else{plottitle = "Other families"}
+  
+  isfamdf[[i]] = df %>%
+    dplyr::filter(ISFamily == i) %>% 
+    dplyr::group_by(strain) %>%
+    dplyr::summarise(count = n()) %>% 
+    dplyr::mutate(readCount = resCounts$counts) %>% 
+    dplyr::mutate(norm = (max(readCount)/readCount)*count) %>% 
+    dplyr::mutate(strain = str_replace(strain, " .$", "")) %>% 
+    dplyr::group_by(strain) %>% 
+    dplyr::summarise(mean = mean(norm),
+                     sd = sd(norm),
+                     n = n())
+  
+  isfamdf[[i]]$margin = 1.96*(isfamdf[[i]]$sd/sqrt(isfamdf[[i]]$n))
+  isfamdf[[i]]$lower95ci = isfamdf[[i]]$mean - isfamdf[[i]]$margin
+  isfamdf[[i]]$upper95ci = isfamdf[[i]]$mean + isfamdf[[i]]$margin
+  
+  isfamplot[[i]] = isfamdf[[i]] %>% 
+    ggplot(aes(x = strain, y = mean)) +
+    geom_point() +
+    geom_pointrange(aes(ymin = lower95ci,
+                        ymax = upper95ci)) +
+    coord_flip() +
+    xlab("Strain") +
+    ylab("Average number of observed mobilizations") +
+    ggtitle(plottitle) +
+    theme(axis.text.y = element_markdown(),
+          plot.title = element_markdown())
+}
+
+ggsave(filename = "plots/mobilizationComparisonPerFamily_en.png",
+       plot = ggarrange(plotlist = isfamplot,
+                        nrow = isfamplot %>% length(),
+                        ncol = 1,
+                        labels = "AUTO"),
+       dpi = 300,
+       width = 7,
+       height = 8)
